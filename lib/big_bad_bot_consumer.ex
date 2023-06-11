@@ -4,29 +4,31 @@ defmodule BigBadBotConsumer do
   require Logger
 
   alias Nostrum.Api
+  alias BigBadBot.Repo
+  alias Message
 
   def start_link() do
     Consumer.start_link(__MODULE__)
   end
 
-  def handle_event({:MESSAGE_CREATE, msg, _ws_state}) do
-    IO.inspect(msg)
+  # def handle_event({:MESSAGE_CREATE, msg, _ws_state}) do
+  #   IO.inspect(msg)
 
-    case msg.content do
-      "!sleep" ->
-        Api.create_message(msg.channel_id, "Going to sleep...")
-        Process.sleep(3000)
+  #   case msg.content do
+  #     "!sleep" ->
+  #       Api.create_message(msg.channel_id, "Going to sleep...")
+  #       Process.sleep(3000)
 
-      "!ping" ->
-        Api.create_message(msg.channel_id, "pong!")
+  #     "!ping" ->
+  #       Api.create_message(msg.channel_id, "pong!")
 
-      "!raise" ->
-        raise "No problems here"
+  #     "!raise" ->
+  #       raise "No problems here"
 
-      _ ->
-        :ignore
-    end
-  end
+  #     _ ->
+  #       :ignore
+  #   end
+  # end
 
   def handle_event({:READY, data = %Nostrum.Struct.Event.Ready{}, _ws_state}) do
     IO.puts("Ready Event")
@@ -56,9 +58,23 @@ defmodule BigBadBotConsumer do
     })
   end
 
-  def handle_event(event) do
-    IO.inspect(event)
+  def handle_event({:MESSAGE_CREATE, msg = %Nostrum.Struct.Message{}, _state} = event) do
+    IO.inspect(event, label: "Message Inserter")
 
+    %Message{
+      user_id: msg.author.id,
+      username: msg.author.username,
+      channel_id: msg.channel_id,
+      guild_id: msg.guild_id,
+      content: msg.content,
+      message_id: msg.id
+    }
+    |> Message.changeset(%{})
+    |> Repo.insert()
+  end
+
+  def handle_event(event) do
+    IO.inspect(event, label: "Default Event Handler")
     :noop
   end
 

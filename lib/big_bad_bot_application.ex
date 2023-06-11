@@ -3,7 +3,7 @@ defmodule BigBadBotApplication do
 
   @impl true
   def start(_type, _args) do
-    children = [BigBadBot]
+    children = [BigBadBot, BigBadBot.Repo]
 
     options = [strategy: :rest_for_one, name: BigBadBotSupervisor]
     Supervisor.start_link(children, options)
