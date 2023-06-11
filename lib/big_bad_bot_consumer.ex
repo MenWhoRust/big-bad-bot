@@ -58,18 +58,27 @@ defmodule BigBadBotConsumer do
     })
   end
 
+  def handle_event({:MESSAGE_UPDATE, msg = %Nostrum.Struct.Message{}, _state} = event) do
+    IO.inspect(event, label: "Message edit Inserter")
+
+    found_message = BigBadBot.Messages.get_message_by_message_id(msg.id)
+
+    process_message(msg, found_message)
+  end
+
   def handle_event({:MESSAGE_CREATE, msg = %Nostrum.Struct.Message{}, _state} = event) do
     IO.inspect(event, label: "Message Inserter")
 
-    %Message{
+    %BigBadBot.Messages.Message{
       user_id: msg.author.id,
       username: msg.author.username,
       channel_id: msg.channel_id,
       guild_id: msg.guild_id,
       content: msg.content,
-      message_id: msg.id
+      message_id: msg.id,
+      discord_timestamp: msg.timestamp
     }
-    |> Message.changeset(%{})
+    |> BigBadBot.Messages.Message.changeset(%{})
     |> Repo.insert()
   end
 
@@ -80,5 +89,17 @@ defmodule BigBadBotConsumer do
 
   defp register_commands(command) do
     IO.inspect(Nostrum.Api.create_global_application_command(command))
+  end
+
+  def process_message(_, nil), do: nil
+
+  def process_message(discord_message, db_message) do
+    %BigBadBot.Messages.MessageEdit{
+      message: db_message,
+      content: discord_message.content,
+      discord_timestamp: discord_message.edited_timestamp
+    }
+    |> BigBadBot.Messages.MessageEdit.changeset(%{})
+    |> Repo.insert()
   end
 end
